@@ -1,5 +1,0 @@
-specs: specs.moderne.ai/v1/cli
-build:
-  steps:
-    - type: python
-    - type: resource

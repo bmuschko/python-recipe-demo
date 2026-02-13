@@ -1,9 +1,7 @@
 .idea
 .claude
 .moderne/*
-!.moderne/cli
-.moderne/cli/*
-!.moderne/cli/moderne.yml
+!.moderne/moderne.yml
 
 # Python
 __pycache__/
