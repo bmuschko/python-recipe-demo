@@ -4,22 +4,22 @@ from __future__ import annotations
 from __future__ import division
 
 
-def add(a, b):
+def add(a,b):
     """Add two numbers."""
     return a + b
 
 
-def subtract(a, b):
+def subtract(a,  b):
     """Subtract b from a."""
     return a - b
 
 
-def multiply(a, b):
+def multiply( a,b ):
     """Multiply two numbers."""
     return a * b
 
 
-def divide(a, b):
+def divide(a ,b):
     """Divide a by b."""
     if b == 0:
         raise ValueError("Cannot divide by zero")
@@ -32,17 +32,17 @@ class Calculator:
     def __init__(self):
         self.history = []
 
-    def calculate(self, operation, a, b):
+    def calculate(self,operation,a,b):
         """Perform a calculation and store in history."""
         result = None
         if operation == "add":
-            result = add(a, b)
+            result = add(a,b)
         elif operation == "subtract":
-            result = subtract(a, b)
+            result = subtract(a,b)
         elif operation == "multiply":
-            result = multiply(a, b)
+            result = multiply(a,b)
         elif operation == "divide":
-            result = divide(a, b)
+            result = divide(a,b)
         else:
             raise ValueError(f"Unknown operation: {operation}")
 
