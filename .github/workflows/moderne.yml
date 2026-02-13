@@ -1,0 +1,72 @@
+name: Moderne Python recipes
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  recipe-verification:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Moderne CLI
+        env:
+          MODERNE_CLI_VERSION: "3.57.4"
+        run: |
+          curl -sSL -o mod.jar https://repo1.maven.org/maven2/io/moderne/moderne-cli/${{ env.MODERNE_CLI_VERSION }}/moderne-cli-${{ env.MODERNE_CLI_VERSION }}.jar
+          echo '#!/bin/bash' > mod
+          echo 'java -jar '"$GITHUB_WORKSPACE"'/mod.jar "$@"' >> mod
+          chmod +x mod
+
+          cat > mod-run <<'EOF'
+          #!/bin/bash
+          set -o pipefail
+          mod run "$@" 2>&1 | tee output.log
+          if grep -qE "Found [0-9]+ errors while running the recipe\." output.log; then
+            echo "Recipe execution failed with errors"
+            exit 1
+          fi
+          EOF
+          chmod +x mod-run
+
+          echo "$GITHUB_WORKSPACE" >> $GITHUB_PATH
+
+      - name: Install recipe JAR
+        env:
+          REWRITE_PYTHON_VERSION: "1.35.0"
+        run: mod config recipes jar install org.openrewrite:rewrite-python:${{ env.REWRITE_PYTHON_VERSION }}
+
+      - name: Build LST
+        run: mod build . --no-download
+
+      - name: Run DependencyInsight recipe (find requests)
+        run: mod-run . --recipe=org.openrewrite.python.search.DependencyInsight -P packageNamePattern="requests*"
+
+      - name: Run UpgradeDependencyVersion recipe
+        run: mod-run . --recipe=org.openrewrite.python.UpgradeDependencyVersion -P packageName=requests -P newVersion=">=2.31.0"
+
+      - name: Run AddDependency recipe
+        run: mod-run . --recipe=org.openrewrite.python.AddDependency -P packageName=httpx -P version=">=0.25.0"
+
+      - name: Run ChangeDependency recipe
+        run: mod-run . --recipe=org.openrewrite.python.ChangeDependency -P oldPackageName=click -P newPackageName=typer -P newVersion=">=0.9.0"
+
+      - name: Run RemoveDependency recipe
+        run: mod-run . --recipe=org.openrewrite.python.RemoveDependency -P packageName=ruff -P scope=project.optional-dependencies -P groupName=dev

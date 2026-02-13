@@ -1,0 +1,16 @@
+.idea
+.claude
+.moderne/*
+!.moderne/cli
+.moderne/cli/*
+!.moderne/cli/moderne.yml
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+*.egg-info/
+dist/
+.pytest_cache/
+.ruff_cache/
