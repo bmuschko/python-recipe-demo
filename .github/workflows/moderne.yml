@@ -26,6 +26,9 @@ jobs:
         with:
           python-version: '3.12'
 
+      - name: Install OpenRewrite Python package
+        run: pip install openrewrite
+
       - name: Install Moderne CLI
         env:
           MODERNE_CLI_VERSION: "3.57.4"
