@@ -50,7 +50,7 @@ jobs:
 
       - name: Install recipe JAR
         env:
-          REWRITE_PYTHON_VERSION: "1.35.0"
+          REWRITE_PYTHON_VERSION: "8.73.1"
         run: mod config recipes jar install org.openrewrite:rewrite-python:${{ env.REWRITE_PYTHON_VERSION }}
 
       - name: Build LST
