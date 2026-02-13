@@ -59,7 +59,10 @@ jobs:
       - name: Build LST
         run: mod build . --no-download
 
-      - name: Run DependencyInsight recipe (find requests)
+      - name: Run PythonSpaces recipe
+        run: mod-run . --recipe=org.openrewrite.python.format.PythonSpaces
+
+      - name: Run DependencyInsight recipe
         run: mod-run . --recipe=org.openrewrite.python.search.DependencyInsight -P packageNamePattern="requests*"
 
       - name: Run UpgradeDependencyVersion recipe
