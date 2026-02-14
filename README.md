@@ -29,15 +29,16 @@ Dev dependencies:
 
 ## Sample Recipes
 
-These OpenRewrite Python recipes can be applied to this project:
+These OpenRewrite Python recipes are run against this project in GitHub Actions:
 
-| Recipe | Description |
-|--------|-------------|
-| `org.openrewrite.python.search.DependencyInsight` | Find dependencies matching a pattern |
-| `org.openrewrite.python.UpgradeDependencyVersion` | Upgrade dependency version |
-| `org.openrewrite.python.AddDependency` | Add a new dependency |
-| `org.openrewrite.python.ChangeDependency` | Change one dependency to another |
-| `org.openrewrite.python.RemoveDependency` | Remove a dependency |
+| Recipe | Parameters | Target |
+|--------|------------|--------|
+| `PythonSpaces` | - | `.py` files |
+| `DependencyInsight` | `packageNamePattern="requests*"` | `pyproject.toml` |
+| `UpgradeDependencyVersion` | `packageName=requests`, `newVersion=">=2.31.0"` | `pyproject.toml` |
+| `AddDependency` | `packageName=httpx`, `version=">=0.25.0"` | `pyproject.toml` |
+| `ChangeDependency` | `oldPackageName=click`, `newPackageName=typer`, `newVersion=">=0.9.0"` | `pyproject.toml` |
+| `RemoveDependency` | `packageName=ruff`, `scope=project.optional-dependencies`, `groupName=dev` | `pyproject.toml` |
 
 ## Python Code Features
 
