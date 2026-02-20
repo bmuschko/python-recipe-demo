@@ -35,7 +35,7 @@ jobs:
       - name: Install Moderne CLI (Linux)
         if: runner.os == 'Linux'
         env:
-          MODERNE_CLI_VERSION: "3.57.8"
+          MODERNE_CLI_VERSION: "3.57.10"
         run: |
           curl -sSL -o mod.jar https://repo1.maven.org/maven2/io/moderne/moderne-cli/${{ env.MODERNE_CLI_VERSION }}/moderne-cli-${{ env.MODERNE_CLI_VERSION }}.jar
           echo '#!/bin/bash' > mod
@@ -58,7 +58,7 @@ jobs:
       - name: Install Moderne CLI (Windows)
         if: runner.os == 'Windows'
         env:
-          MODERNE_CLI_VERSION: "3.57.8"
+          MODERNE_CLI_VERSION: "3.57.10"
         shell: pwsh
         run: |
           Invoke-WebRequest -Uri "https://repo1.maven.org/maven2/io/moderne/moderne-cli/${{ env.MODERNE_CLI_VERSION }}/moderne-cli-${{ env.MODERNE_CLI_VERSION }}.jar" -OutFile mod.jar
