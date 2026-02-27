@@ -9,7 +9,9 @@ on:
 
 jobs:
   recipe-verification:
+    name: recipe-verification (${{ matrix.os }}, CLI ${{ matrix.cli-version }}, Java ${{ matrix.java-version }})
     strategy:
+      fail-fast: false
       matrix:
         include:
           - os: ubuntu-latest
