@@ -33,6 +33,7 @@ These OpenRewrite Python recipes are run against this project in GitHub Actions:
 
 | Recipe | Parameters | Target |
 |--------|------------|--------|
+| `PythonBestPractices` | - | `.py` files |
 | `PythonSpaces` | - | `.py` files |
 | `DependencyInsight` | `packageNamePattern="requests*"` | `pyproject.toml` |
 | `UpgradeDependencyVersion` | `packageName=requests`, `newVersion=">=2.31.0"` | `pyproject.toml` |

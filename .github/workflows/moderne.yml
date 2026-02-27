@@ -43,8 +43,8 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Install OpenRewrite Python package
-        run: pip install openrewrite
+      - name: Install OpenRewrite Python packages
+        run: pip install openrewrite openrewrite-static-analysis
 
       - name: Install Moderne CLI (Linux)
         if: runner.os == 'Linux'
@@ -112,6 +112,15 @@ jobs:
             cmd //c "mod build . --no-download"
           else
             mod build . --no-download
+          fi
+
+      - name: Run PythonBestPractices recipe
+        shell: bash
+        run: |
+          if [ "$RUNNER_OS" == "Windows" ]; then
+            cmd //c "mod-run . --recipe=org.openrewrite.python.cleanup.PythonBestPractices"
+          else
+            mod-run . --recipe=org.openrewrite.python.cleanup.PythonBestPractices
           fi
 
       - name: Run PythonSpaces recipe
