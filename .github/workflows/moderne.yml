@@ -64,6 +64,10 @@ jobs:
             echo "Recipe execution failed with errors"
             exit 1
           fi
+          if grep -q "Unable to find recipe" output.log; then
+            echo "Recipe not found"
+            exit 1
+          fi
           EOF
           chmod +x mod-run
 
@@ -90,6 +94,11 @@ jobs:
             echo Recipe execution failed with errors
             exit /b 1
           )
+          findstr /C:"Unable to find recipe" output.log >nul
+          if %errorlevel%==0 (
+            echo Recipe not found
+            exit /b 1
+          )
           '@ | Out-File -FilePath mod-run.cmd -Encoding ascii
 
           echo "${{ github.workspace }}" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
@@ -112,15 +121,6 @@ jobs:
             cmd //c "mod build . --no-download"
           else
             mod build . --no-download
-          fi
-
-      - name: Run PythonBestPractices recipe
-        shell: bash
-        run: |
-          if [ "$RUNNER_OS" == "Windows" ]; then
-            cmd //c "mod-run . --recipe=org.openrewrite.python.cleanup.PythonBestPractices"
-          else
-            mod-run . --recipe=org.openrewrite.python.cleanup.PythonBestPractices
           fi
 
       - name: Run PythonSpaces recipe
@@ -175,4 +175,13 @@ jobs:
             cmd //c "mod-run . --recipe=org.openrewrite.python.RemoveDependency -P packageName=ruff -P scope=project.optional-dependencies -P groupName=dev"
           else
             mod-run . --recipe=org.openrewrite.python.RemoveDependency -P packageName=ruff -P scope=project.optional-dependencies -P groupName=dev
+          fi
+
+      - name: Run PythonBestPractices recipe
+        shell: bash
+        run: |
+          if [ "$RUNNER_OS" == "Windows" ]; then
+            cmd //c "mod-run . --recipe=org.openrewrite.python.cleanup.PythonBestPractices"
+          else
+            mod-run . --recipe=org.openrewrite.python.cleanup.PythonBestPractices
           fi
