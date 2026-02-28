@@ -43,9 +43,6 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Install OpenRewrite Python packages
-        run: pip install openrewrite openrewrite-static-analysis
-
       - name: Install Moderne CLI (Linux)
         if: runner.os == 'Linux'
         env:
@@ -112,6 +109,17 @@ jobs:
             cmd //c "mod config recipes jar install org.openrewrite:rewrite-python:${{ env.REWRITE_PYTHON_VERSION }}"
           else
             mod config recipes jar install org.openrewrite:rewrite-python:${{ env.REWRITE_PYTHON_VERSION }}
+          fi
+
+      - name: Install recipe Python packages
+        shell: bash
+        run: |
+          if [ "$RUNNER_OS" == "Windows" ]; then
+            cmd //c "mod config recipes pip install openrewrite"
+            cmd //c "mod config recipes pip install openrewrite-static-analysis"
+          else
+            mod config recipes pip install openrewrite
+            mod config recipes pip install openrewrite-static-analysis
           fi
 
       - name: Build LST
