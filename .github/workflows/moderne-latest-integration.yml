@@ -1,0 +1,216 @@
+name: Moderne Python recipes (latest.integration CLI)
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  recipe-verification:
+    name: recipe-verification (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Checkout Moderne CLI
+        uses: actions/checkout@v4
+        with:
+          repository: moderneinc/moderne-cli
+          ref: '3.x'
+          token: ${{ secrets.MODERNE_CLI_TOKEN }}
+          path: moderne-cli
+
+      - name: Patch libs.versions.toml for latest.integration
+        shell: bash
+        run: |
+          sed -i 's/rewrite-version = "latest\.release"/rewrite-version = "latest.integration"/' moderne-cli/gradle/libs.versions.toml
+          sed -i 's/rewrite-python = "org\.openrewrite:rewrite-python:latest\.release"/rewrite-python = "org.openrewrite:rewrite-python:latest.integration"/' moderne-cli/gradle/libs.versions.toml
+          echo "Patched libs.versions.toml:"
+          cat moderne-cli/gradle/libs.versions.toml
+
+      - name: Build CLI fat JAR (Linux)
+        if: runner.os == 'Linux'
+        working-directory: moderne-cli
+        run: |
+          chmod +x gradlew
+          ./gradlew devFatJar
+
+      - name: Build CLI fat JAR (Windows)
+        if: runner.os == 'Windows'
+        working-directory: moderne-cli
+        shell: cmd
+        run: gradlew.bat devFatJar
+
+      - name: Install built CLI (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          CLI_JAR=$(find moderne-cli -name "*.jar" -path "*/build/libs/*" -type f | sort -rS | head -1)
+          echo "Using CLI JAR: $CLI_JAR"
+          cp "$CLI_JAR" mod.jar
+
+          echo '#!/bin/bash' > mod
+          echo 'java -jar '"$GITHUB_WORKSPACE"'/mod.jar "$@"' >> mod
+          chmod +x mod
+
+          cat > mod-run <<'EOF'
+          #!/bin/bash
+          set -o pipefail
+          mod run "$@" 2>&1 | tee output.log
+          if grep -qE "Found [0-9]+ errors while running the recipe\." output.log; then
+            echo "Recipe execution failed with errors"
+            exit 1
+          fi
+          if grep -q "Unable to find recipe" output.log; then
+            echo "Recipe not found"
+            exit 1
+          fi
+          EOF
+          chmod +x mod-run
+
+          echo "$GITHUB_WORKSPACE" >> $GITHUB_PATH
+
+      - name: Install built CLI (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $cliJar = Get-ChildItem -Path moderne-cli -Recurse -Filter "*.jar" |
+            Where-Object { $_.FullName -like "*build*libs*" } |
+            Sort-Object -Property Length -Descending |
+            Select-Object -First 1
+          Write-Host "Using CLI JAR: $($cliJar.FullName)"
+          Copy-Item $cliJar.FullName -Destination mod.jar
+
+          @'
+          @echo off
+          java -jar "%~dp0mod.jar" %*
+          '@ | Out-File -FilePath mod.cmd -Encoding ascii
+
+          @'
+          @echo off
+          call mod run %* 2>&1 | tee output.log
+          findstr /R "Found [0-9]* errors while running the recipe\." output.log >nul
+          if %errorlevel%==0 (
+            echo Recipe execution failed with errors
+            exit /b 1
+          )
+          findstr /C:"Unable to find recipe" output.log >nul
+          if %errorlevel%==0 (
+            echo Recipe not found
+            exit /b 1
+          )
+          '@ | Out-File -FilePath mod-run.cmd -Encoding ascii
+
+          echo "${{ github.workspace }}" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+      - name: Install recipe JAR
+        env:
+          REWRITE_PYTHON_VERSION: "8.74.1"
+        shell: bash
+        run: |
+          if [ "$RUNNER_OS" == "Windows" ]; then
+            cmd //c "mod config recipes jar install org.openrewrite:rewrite-python:${{ env.REWRITE_PYTHON_VERSION }}"
+          else
+            mod config recipes jar install org.openrewrite:rewrite-python:${{ env.REWRITE_PYTHON_VERSION }}
+          fi
+
+      - name: Install recipe Python packages
+        shell: bash
+        run: |
+          if [ "$RUNNER_OS" == "Windows" ]; then
+            cmd //c "mod config recipes pip install openrewrite"
+            cmd //c "mod config recipes pip install openrewrite-static-analysis"
+          else
+            mod config recipes pip install openrewrite
+            mod config recipes pip install openrewrite-static-analysis
+          fi
+
+      - name: Build LST
+        shell: bash
+        run: |
+          if [ "$RUNNER_OS" == "Windows" ]; then
+            cmd //c "mod build . --no-download"
+          else
+            mod build . --no-download
+          fi
+
+      - name: Run PythonSpaces recipe
+        shell: bash
+        run: |
+          if [ "$RUNNER_OS" == "Windows" ]; then
+            cmd //c "mod-run . --recipe=org.openrewrite.python.format.PythonSpaces"
+          else
+            mod-run . --recipe=org.openrewrite.python.format.PythonSpaces
+          fi
+
+      - name: Run DependencyInsight recipe
+        shell: bash
+        run: |
+          if [ "$RUNNER_OS" == "Windows" ]; then
+            cmd //c "mod-run . --recipe=org.openrewrite.python.search.DependencyInsight -P packageNamePattern=\"requests*\""
+          else
+            mod-run . --recipe=org.openrewrite.python.search.DependencyInsight -P packageNamePattern="requests*"
+          fi
+
+      - name: Run UpgradeDependencyVersion recipe
+        shell: bash
+        run: |
+          if [ "$RUNNER_OS" == "Windows" ]; then
+            cmd //c "mod-run . --recipe=org.openrewrite.python.UpgradeDependencyVersion -P packageName=requests -P newVersion=\">=2.31.0\""
+          else
+            mod-run . --recipe=org.openrewrite.python.UpgradeDependencyVersion -P packageName=requests -P newVersion=">=2.31.0"
+          fi
+
+      - name: Run AddDependency recipe
+        shell: bash
+        run: |
+          if [ "$RUNNER_OS" == "Windows" ]; then
+            cmd //c "mod-run . --recipe=org.openrewrite.python.AddDependency -P packageName=httpx -P version=\">=0.25.0\""
+          else
+            mod-run . --recipe=org.openrewrite.python.AddDependency -P packageName=httpx -P version=">=0.25.0"
+          fi
+
+      - name: Run ChangeDependency recipe
+        shell: bash
+        run: |
+          if [ "$RUNNER_OS" == "Windows" ]; then
+            cmd //c "mod-run . --recipe=org.openrewrite.python.ChangeDependency -P oldPackageName=click -P newPackageName=typer -P newVersion=\">=0.9.0\""
+          else
+            mod-run . --recipe=org.openrewrite.python.ChangeDependency -P oldPackageName=click -P newPackageName=typer -P newVersion=">=0.9.0"
+          fi
+
+      - name: Run RemoveDependency recipe
+        shell: bash
+        run: |
+          if [ "$RUNNER_OS" == "Windows" ]; then
+            cmd //c "mod-run . --recipe=org.openrewrite.python.RemoveDependency -P packageName=ruff -P scope=project.optional-dependencies -P groupName=dev"
+          else
+            mod-run . --recipe=org.openrewrite.python.RemoveDependency -P packageName=ruff -P scope=project.optional-dependencies -P groupName=dev
+          fi
+
+      - name: Run PythonBestPractices recipe
+        shell: bash
+        run: |
+          if [ "$RUNNER_OS" == "Windows" ]; then
+            cmd //c "mod-run . --recipe=org.openrewrite.python.cleanup.PythonBestPractices"
+          else
+            mod-run . --recipe=org.openrewrite.python.cleanup.PythonBestPractices
+          fi
