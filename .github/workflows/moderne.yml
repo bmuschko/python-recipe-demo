@@ -43,25 +43,28 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Install Moderne CLI (Linux)
-        if: runner.os == 'Linux'
+      - name: Install Moderne CLI
         env:
           MODERNE_CLI_VERSION: ${{ matrix.cli-version }}
+        shell: bash
         run: |
           curl -sSL -o mod.jar https://repo1.maven.org/maven2/io/moderne/moderne-cli/${{ env.MODERNE_CLI_VERSION }}/moderne-cli-${{ env.MODERNE_CLI_VERSION }}.jar
           echo '#!/bin/bash' > mod
-          echo 'java -jar '"$GITHUB_WORKSPACE"'/mod.jar "$@"' >> mod
+          echo 'java -jar "'"$GITHUB_WORKSPACE"'/mod.jar" "$@"' >> mod
           chmod +x mod
 
           cat > mod-run <<'EOF'
           #!/bin/bash
           set -o pipefail
           mod run "$@" 2>&1 | tee output.log
-          if grep -qE "Found [0-9]+ errors while running the recipe\." output.log; then
+          # Strip carriage-return progress artifacts so overwritten status lines
+          # (e.g. "Found 0 errors …") do not cause false-positive matches.
+          sed $'s/.*\r//' output.log > output_rendered.log
+          if grep -qE "Found [0-9]+ errors while running the recipe\." output_rendered.log; then
             echo "Recipe execution failed with errors"
             exit 1
           fi
-          if grep -q "Unable to find recipe" output.log; then
+          if grep -q "Unable to find recipe" output_rendered.log; then
             echo "Recipe not found"
             exit 1
           fi
@@ -70,126 +73,46 @@ jobs:
 
           echo "$GITHUB_WORKSPACE" >> $GITHUB_PATH
 
-      - name: Install Moderne CLI (Windows)
-        if: runner.os == 'Windows'
-        env:
-          MODERNE_CLI_VERSION: ${{ matrix.cli-version }}
-        shell: pwsh
-        run: |
-          Invoke-WebRequest -Uri "https://repo1.maven.org/maven2/io/moderne/moderne-cli/${{ env.MODERNE_CLI_VERSION }}/moderne-cli-${{ env.MODERNE_CLI_VERSION }}.jar" -OutFile mod.jar
-
-          @'
-          @echo off
-          java -jar "%~dp0mod.jar" %*
-          '@ | Out-File -FilePath mod.cmd -Encoding ascii
-
-          @'
-          @echo off
-          call mod run %* 2>&1 | tee output.log
-          findstr /R "Found [0-9]* errors while running the recipe\." output.log >nul
-          if %errorlevel%==0 (
-            echo Recipe execution failed with errors
-            exit /b 1
-          )
-          findstr /C:"Unable to find recipe" output.log >nul
-          if %errorlevel%==0 (
-            echo Recipe not found
-            exit /b 1
-          )
-          '@ | Out-File -FilePath mod-run.cmd -Encoding ascii
-
-          echo "${{ github.workspace }}" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-
       - name: Install recipe JAR
         env:
           REWRITE_PYTHON_VERSION: "8.75.7"
         shell: bash
-        run: |
-          if [ "$RUNNER_OS" == "Windows" ]; then
-            cmd //c "mod config recipes jar install org.openrewrite:rewrite-python:${{ env.REWRITE_PYTHON_VERSION }}"
-          else
-            mod config recipes jar install org.openrewrite:rewrite-python:${{ env.REWRITE_PYTHON_VERSION }}
-          fi
+        run: mod config recipes jar install org.openrewrite:rewrite-python:${{ env.REWRITE_PYTHON_VERSION }}
 
       - name: Install recipe Python packages
         shell: bash
         run: |
-          if [ "$RUNNER_OS" == "Windows" ]; then
-            cmd //c "mod config recipes pip install openrewrite"
-            cmd //c "mod config recipes pip install openrewrite-static-analysis"
-          else
-            mod config recipes pip install openrewrite
-            mod config recipes pip install openrewrite-static-analysis
-          fi
+          mod config recipes pip install openrewrite
+          mod config recipes pip install openrewrite-static-analysis
 
       - name: Build LST
         shell: bash
-        run: |
-          if [ "$RUNNER_OS" == "Windows" ]; then
-            cmd //c "mod build . --no-download"
-          else
-            mod build . --no-download
-          fi
+        run: mod build . --no-download
 
       - name: Run PythonSpaces recipe
         shell: bash
-        run: |
-          if [ "$RUNNER_OS" == "Windows" ]; then
-            cmd //c "mod-run . --recipe=org.openrewrite.python.format.PythonSpaces"
-          else
-            mod-run . --recipe=org.openrewrite.python.format.PythonSpaces
-          fi
+        run: mod-run . --recipe=org.openrewrite.python.format.PythonSpaces
 
       - name: Run DependencyInsight recipe
         shell: bash
-        run: |
-          if [ "$RUNNER_OS" == "Windows" ]; then
-            cmd //c "mod-run . --recipe=org.openrewrite.python.search.DependencyInsight -P packageNamePattern=\"requests*\""
-          else
-            mod-run . --recipe=org.openrewrite.python.search.DependencyInsight -P packageNamePattern="requests*"
-          fi
+        run: mod-run . --recipe=org.openrewrite.python.search.DependencyInsight -P packageNamePattern="requests*"
 
       - name: Run UpgradeDependencyVersion recipe
         shell: bash
-        run: |
-          if [ "$RUNNER_OS" == "Windows" ]; then
-            cmd //c "mod-run . --recipe=org.openrewrite.python.UpgradeDependencyVersion -P packageName=requests -P newVersion=\">=2.31.0\""
-          else
-            mod-run . --recipe=org.openrewrite.python.UpgradeDependencyVersion -P packageName=requests -P newVersion=">=2.31.0"
-          fi
+        run: mod-run . --recipe=org.openrewrite.python.UpgradeDependencyVersion -P packageName=requests -P newVersion=">=2.31.0"
 
       - name: Run AddDependency recipe
         shell: bash
-        run: |
-          if [ "$RUNNER_OS" == "Windows" ]; then
-            cmd //c "mod-run . --recipe=org.openrewrite.python.AddDependency -P packageName=httpx -P version=\">=0.25.0\""
-          else
-            mod-run . --recipe=org.openrewrite.python.AddDependency -P packageName=httpx -P version=">=0.25.0"
-          fi
+        run: mod-run . --recipe=org.openrewrite.python.AddDependency -P packageName=httpx -P version=">=0.25.0"
 
       - name: Run ChangeDependency recipe
         shell: bash
-        run: |
-          if [ "$RUNNER_OS" == "Windows" ]; then
-            cmd //c "mod-run . --recipe=org.openrewrite.python.ChangeDependency -P oldPackageName=click -P newPackageName=typer -P newVersion=\">=0.9.0\""
-          else
-            mod-run . --recipe=org.openrewrite.python.ChangeDependency -P oldPackageName=click -P newPackageName=typer -P newVersion=">=0.9.0"
-          fi
+        run: mod-run . --recipe=org.openrewrite.python.ChangeDependency -P oldPackageName=click -P newPackageName=typer -P newVersion=">=0.9.0"
 
       - name: Run RemoveDependency recipe
         shell: bash
-        run: |
-          if [ "$RUNNER_OS" == "Windows" ]; then
-            cmd //c "mod-run . --recipe=org.openrewrite.python.RemoveDependency -P packageName=ruff -P scope=project.optional-dependencies -P groupName=dev"
-          else
-            mod-run . --recipe=org.openrewrite.python.RemoveDependency -P packageName=ruff -P scope=project.optional-dependencies -P groupName=dev
-          fi
+        run: mod-run . --recipe=org.openrewrite.python.RemoveDependency -P packageName=ruff -P scope=project.optional-dependencies -P groupName=dev
 
       - name: Run PythonBestPractices recipe
         shell: bash
-        run: |
-          if [ "$RUNNER_OS" == "Windows" ]; then
-            cmd //c "mod-run . --recipe=org.openrewrite.python.cleanup.PythonBestPractices"
-          else
-            mod-run . --recipe=org.openrewrite.python.cleanup.PythonBestPractices
-          fi
+        run: mod-run . --recipe=org.openrewrite.python.cleanup.PythonBestPractices
