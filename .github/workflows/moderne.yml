@@ -15,16 +15,16 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            cli-version: "3.57.13"
+            cli-version: "3.57.15"
             java-version: "17"
           - os: ubuntu-latest
-            cli-version: "4.0.3"
+            cli-version: "4.0.5"
             java-version: "25"
           - os: windows-latest
-            cli-version: "3.57.13"
+            cli-version: "3.57.15"
             java-version: "17"
           - os: windows-latest
-            cli-version: "4.0.3"
+            cli-version: "4.0.5"
             java-version: "25"
     runs-on: ${{ matrix.os }}
 
@@ -102,7 +102,7 @@ jobs:
 
       - name: Install recipe JAR
         env:
-          REWRITE_PYTHON_VERSION: "8.75.0"
+          REWRITE_PYTHON_VERSION: "8.75.7"
         shell: bash
         run: |
           if [ "$RUNNER_OS" == "Windows" ]; then
