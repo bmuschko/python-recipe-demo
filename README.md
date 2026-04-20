@@ -33,13 +33,13 @@ These OpenRewrite Python recipes are run against this project in GitHub Actions:
 
 | Recipe | Parameters | Target |
 |--------|------------|--------|
-| `PythonBestPractices` | - | `.py` files |
-| `PythonSpaces` | - | `.py` files |
-| `DependencyInsight` | `packageNamePattern="requests*"` | `pyproject.toml` |
-| `UpgradeDependencyVersion` | `packageName=requests`, `newVersion=">=2.31.0"` | `pyproject.toml` |
-| `AddDependency` | `packageName=httpx`, `version=">=0.25.0"` | `pyproject.toml` |
-| `ChangeDependency` | `oldPackageName=click`, `newPackageName=typer`, `newVersion=">=0.9.0"` | `pyproject.toml` |
-| `RemoveDependency` | `packageName=ruff`, `scope=project.optional-dependencies`, `groupName=dev` | `pyproject.toml` |
+| [`org.openrewrite.python.cleanup.PythonBestPractices`](https://docs.moderne.io/user-documentation/recipes/recipe-catalog/python/cleanup/pythonbestpractices) | - | `.py` files |
+| [`org.openrewrite.python.format.PythonSpaces`](https://docs.moderne.io/user-documentation/recipes/recipe-catalog/python/format/pythonspaces) | - | `.py` files |
+| [`org.openrewrite.python.search.DependencyInsight`](https://docs.moderne.io/user-documentation/recipes/recipe-catalog/python/search/dependencyinsight) | `packageNamePattern="requests*"` | `pyproject.toml` |
+| [`org.openrewrite.python.UpgradeDependencyVersion`](https://docs.moderne.io/user-documentation/recipes/recipe-catalog/python/upgradedependencyversion) | `packageName=requests`, `newVersion=">=2.31.0"` | `pyproject.toml` |
+| [`org.openrewrite.python.AddDependency`](https://docs.moderne.io/user-documentation/recipes/recipe-catalog/python/adddependency) | `packageName=httpx`, `version=">=0.25.0"` | `pyproject.toml` |
+| [`org.openrewrite.python.ChangeDependency`](https://docs.moderne.io/user-documentation/recipes/recipe-catalog/python/changedependency) | `oldPackageName=click`, `newPackageName=typer`, `newVersion=">=0.9.0"` | `pyproject.toml` |
+| [`org.openrewrite.python.RemoveDependency`](https://docs.moderne.io/user-documentation/recipes/recipe-catalog/python/removedependency) | `packageName=ruff`, `scope=project.optional-dependencies`, `groupName=dev` | `pyproject.toml` |
 
 ## Python Code Features
 
